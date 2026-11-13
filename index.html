@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synclos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(18, 20, 28, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-panel { background: rgba(24, 27, 38, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-tab { background: rgba(30, 35, 48, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-tab.active { background: rgba(24, 27, 38, 0.95); border-left: 3px solid #10b981; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .synclos-neon-script {
+            font-family: 'Great Vibes', 'Alex Brush', cursive;
+            color: #050807;
+            -webkit-text-stroke: 1.75px #22c55e;
+            paint-order: stroke fill;
+            text-shadow:
+                0 0 8px rgba(34, 197, 94, 0.9),
+                0 0 18px rgba(16, 185, 129, 0.7),
+                0 0 32px rgba(16, 185, 129, 0.45);
+            letter-spacing: 0.03em;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            border-right: 3px solid #22c55e;
+            width: 0;
+            animation: typing 1.8s steps(7, end) forwards, blink 0.75s step-end infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            from, to { border-color: transparent; }
+            50% { border-color: #22c55e; }
+        }
+    </style>
+</head>
+<body id="bodyBg" class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex select-none bg-cover bg-center transition-all duration-500" style="background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80')">
+
+    <!-- Loading Screen Overlay -->
+    <div id="loadingScreen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center gap-4 transition-opacity duration-500">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl font-bold animate-pulse shadow-2xl">S</div>
+        <div class="text-center space-y-1">
+            <h2 class="text-lg font-bold tracking-tight text-white">Loading Synclos</h2>
+            <p class="text-xs text-slate-400">Initializing secure workspace...</p>
+        </div>
+        <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden mt-2">
+            <div id="loadingBar" class="h-full bg-emerald-500 w-0 transition-all duration-300"></div>
+        </div>
+    </div>
+
+    <!-- LEFT SIDEBAR (Collapsed by default) -->
+    <aside id="sidebar" class="sidebar-transition w-16 bg-slate-950/90 backdrop-blur-2xl border-r border-slate-800 flex flex-col justify-between shrink-0 z-50">
+        <div class="flex flex-col h-full overflow-hidden">
+            
+            <!-- Brand Header -->
+            <div class="p-4 flex items-center justify-between border-b border-slate-800/60">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm shadow-lg shrink-0">S</div>
+                    <span class="sidebar-text hidden font-bold tracking-tight text-white text-base truncate">Synclos</span>
+                </div>
+            </div>
+
+            <!-- Tabs Section -->
+            <div class="p-3 border-b border-slate-800/60 space-y-2">
+                <button id="addNewTabBtn" class="w-full py-2 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition" title="New tab">
+                    <i class="fa-solid fa-plus text-emerald-400 shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">New tab</span>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="p-3 space-y-1 overflow-y-auto flex-1">
+                <button onclick="switchView('home')" id="navBtnHome" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Home">
+                    <i class="fa-solid fa-house text-emerald-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Home</span>
+                </button>
+
+                <button onclick="switchView('apps')" id="navBtnApps" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Apps">
+                    <i class="fa-solid fa-grip text-blue-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Apps</span>
+                </button>
+
+                <button onclick="switchView('games')" id="navBtnGames" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Games">
+                    <i class="fa-solid fa-gamepad text-purple-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Games</span>
+                </button>
+
+                <button onclick="switchView('ai')" id="navBtnAi" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="AI Tools">
+                    <i class="fa-solid fa-robot text-amber-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">AI Tools</span>
+                </button>
+
+                <div class="my-2 border-t border-slate-800/60"></div>
+
+                <!-- SETTINGS INTEGRATED INTO SIDEBAR -->
+                <button onclick="switchView('settings')" id="navBtnSettings" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Settings">
+                    <i class="fa-solid fa-gear text-slate-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Settings</span>
+                </button>
+
+                <button onclick="window.open('https://discord.gg/uqCaE7re', '_blank')" class="nav-item w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Discord">
+                    <i class="fa-brands fa-discord text-indigo-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Discord</span>
+                </button>
+            </div>
+
+            <!-- Sidebar Collapse Toggle Footer -->
+            <div class="p-3 border-t border-slate-800/60">
+                <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="w-full py-2 px-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-white text-xs font-semibold flex items-center gap-3 transition" title="Expand Sidebar">
+                    <i id="collapseIcon" class="fa-solid fa-chevron-right text-slate-400 w-4 text-center shrink-0"></i>
+                    <span class="sidebar-text hidden truncate">Expand</span>
+                </button>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 relative overflow-hidden flex flex-col">
+
+        <!-- CHROME-STYLE TOP NAVIGATION BAR -->
+        <div id="topBrowserBar" class="bg-slate-900 border-b border-slate-800 flex flex-col shrink-0 select-none">
+            <!-- Tab Row -->
+            <div class="h-9 bg-slate-950/60 px-2 flex items-center gap-2 overflow-x-auto shrink-0 border-b border-slate-800/60" id="topBrowserTabs">
+                <!-- Dynamic Horizontal Top Tabs -->
+            </div>
+            <!-- Omnibox Row -->
+            <div class="h-12 px-3 flex items-center gap-3 bg-slate-900">
+                <div class="flex items-center gap-1.5 text-slate-400">
+                    <button onclick="switchTabToHome()" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center transition" title="Home">
+                        <i class="fa-solid fa-house text-xs"></i>
+                    </button>
+                    <button onclick="location.reload()" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center transition" title="Reload">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex-1 relative">
+                    <input type="text" id="browserOmniboxInput" placeholder="SEARCH OR ENTER URL" 
+                        class="w-full h-9 pl-3 pr-24 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-medium tracking-wider transition">
+                    <button onclick="handleOmniboxSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded text-[10px] transition">
+                        Search
+                    </button>
+                </div>
+                <div class="flex items-center gap-1.5 text-slate-400">
+                    <button onclick="toggleFullscreen()" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center transition" title="Full Screen">
+                        <i class="fa-solid fa-expand text-xs"></i>
+                    </button>
+                    <button onclick="switchView('settings')" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center transition" title="Settings">
+                        <i class="fa-solid fa-gear text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOME VIEW -->
+        <div id="viewHome" class="absolute inset-x-0 bottom-0 top-[84px] flex flex-col items-center justify-between p-8 z-10 overflow-y-auto">
+            <div class="w-full max-w-xl text-center my-auto flex flex-col items-center gap-6">
+                <div class="inline-block px-4">
+                    <h1 class="synclos-neon-script text-6xl md:text-7xl font-normal select-none">Synclos</h1>
+                </div>
+                <div class="w-full relative">
+                    <input type="text" id="launcherSearchInput" placeholder="SEARCH OR ENTER URL..." 
+                        class="w-full h-12 pl-10 pr-24 rounded-xl glass-panel text-white placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 transition shadow-2xl tracking-wider font-semibold">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <button id="launcherGoBtn" class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-lg transition shadow-lg uppercase">
+                        Search
+                    </button>
+                </div>
+                <div class="flex items-center gap-6 flex-wrap justify-center pt-2">
+                    <div onclick="launchApp('Roblox', 'https://frogiesarcade.net')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center group-hover:scale-105 group-hover:border-emerald-500 transition shadow-md">
+                            <i class="fa-solid fa-cube text-emerald-400 text-lg"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-wider">ROBLOX</span>
+                    </div>
+                    <div onclick="launchApp('TikTok', 'https://www.tiktok.com')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center group-hover:scale-105 group-hover:border-emerald-500 transition shadow-md">
+                            <i class="fa-brands fa-tiktok text-white text-lg"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-wider">TIKTOK</span>
+                    </div>
+                    <div onclick="launchApp('YouTube', 'https://www.youtube.com')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center group-hover:scale-105 group-hover:border-emerald-500 transition shadow-md">
+                            <i class="fa-brands fa-youtube text-red-500 text-lg"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-wider">YOUTUBE</span>
+                    </div>
+                    <div onclick="launchApp('Discord', 'https://discord.com')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center group-hover:scale-105 group-hover:border-emerald-500 transition shadow-md">
+                            <i class="fa-brands fa-discord text-indigo-400 text-lg"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-wider">DISCORD</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Bottom Left Quick Launch Button -->
+            <div class="absolute left-6 bottom-6 z-20">
+                <button onclick="switchView('apps')" class="w-10 h-10 rounded-xl glass hover:bg-slate-800/90 flex items-center justify-center text-emerald-400 transition shadow-lg" title="Apps Grid">
+                    <i class="fa-solid fa-globe text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- APPS VIEW -->
+        <div id="viewApps" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col p-8 z-10 overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <h2 class="text-2xl font-bold text-white">Applications</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="appsGrid"></div>
+            </div>
+        </div>
+
+        <!-- GAMES VIEW -->
+        <div id="viewGames" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col p-8 z-10 overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Games Library</h2>
+                        <p class="text-xs text-slate-400">Play web ports or add your own custom game files & URLs.</p>
+                    </div>
+                    <button onclick="switchView('addGame')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-lg">
+                        <i class="fa-solid fa-plus"></i> Add Game
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="gamesGrid"></div>
+            </div>
+        </div>
+
+        <!-- ADD GAME VIEW -->
+        <div id="viewAddGame" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col p-8 z-10 overflow-y-auto">
+            <div class="max-w-xl mx-auto w-full space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Add Custom Game</h2>
+                        <p class="text-xs text-slate-400">Upload your game file path/URL and picture cover.</p>
+                    </div>
+                    <button onclick="switchView('games')" class="px-3 py-1.5 rounded-xl glass hover:bg-slate-800 text-xs font-semibold text-slate-300 transition">
+                        Back to Games
+                    </button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-300">Game Name</label>
+                        <input type="text" id="newGameName" placeholder="e.g. Undertale - Section 1" class="w-full h-10 px-3 rounded-xl glass text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-semibold text-slate-300">Game File Path or URL</label>
+                            <span class="text-[10px] text-slate-400">e.g. html-main/1-fix2.html</span>
+                        </div>
+                        <input type="text" id="newGameUrl" placeholder="html-main/1-fix2.html or https://..." class="w-full h-10 px-3 rounded-xl glass text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-300">Picture Cover URL</label>
+                        <input type="text" id="newGameImg" placeholder="https://images.unsplash.com/... or leave blank" oninput="previewCover(this.value)" class="w-full h-10 px-3 rounded-xl glass text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Live Cover Preview Box -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-300">Cover Preview</label>
+                        <div id="coverPreviewBox" class="h-32 rounded-xl bg-slate-900 border border-slate-800 bg-cover bg-center flex items-center justify-center text-slate-500 text-xs">
+                            No image preview yet
+                        </div>
+                    </div>
+
+                    <button onclick="saveCustomGame()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg mt-2">
+                        Add Game to Library
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI VIEW -->
+        <div id="viewAi" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col p-8 z-10 overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <h2 class="text-2xl font-bold text-white">AI Assistants & Tools</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="aiGrid"></div>
+            </div>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div id="viewSettings" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col p-8 z-10 overflow-y-auto">
+            <div class="max-w-4xl mx-auto w-full space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Settings</h2>
+                    <p class="text-sm text-slate-400">Manage launcher background themes, panic URL, tab cloaking, and close protection.</p>
+                </div>
+
+                <div class="flex gap-2 border-b border-slate-800 pb-2">
+                    <button onclick="switchSettingsTab('themes')" id="stBtnThemes" class="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold text-sm transition">Themes</button>
+                    <button onclick="switchSettingsTab('cloak')" id="stBtnCloak" class="px-4 py-2 rounded-xl hover:bg-slate-800/60 text-slate-300 font-semibold text-sm transition">Tab Cloak</button>
+                    <button onclick="switchSettingsTab('panic')" id="stBtnPanic" class="px-4 py-2 rounded-xl hover:bg-slate-800/60 text-slate-300 font-semibold text-sm transition">Panic & Security</button>
+                </div>
+
+                <!-- Themes Tab -->
+                <div id="stTabThemes" class="space-y-4">
+                    <h3 class="text-lg font-bold text-white">Wallpapers & Custom Screenshots</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="themesGrid"></div>
+                </div>
+
+                <!-- Tab Cloak Tab -->
+                <div id="stTabCloak" class="space-y-4 hidden">
+                    <h3 class="text-lg font-bold text-white">Tab Cloaking Presets & Custom URL</h3>
+                    <div class="glass-panel p-6 rounded-2xl space-y-4 max-w-md">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="setCloak('Google Drive', 'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico')" class="px-3 py-2 rounded-xl glass hover:bg-slate-800 text-xs font-medium text-left">Google Drive</button>
+                            <button onclick="setCloak('Google Classroom', 'https://gstatic.com/classroom/ic_product_classroom_32.png')" class="px-3 py-2 rounded-xl glass hover:bg-slate-800 text-xs font-medium text-left">Classroom</button>
+                            <button onclick="setCloak('i-Ready', 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/iready.png')" class="px-3 py-2 rounded-xl glass hover:bg-slate-800 text-xs font-medium text-left">i-Ready</button>
+                            <button onclick="setCloak('Synclos', '')" class="px-3 py-2 rounded-xl glass hover:bg-slate-800 text-xs font-medium text-left">Reset Default</button>
+                        </div>
+                        <div class="border-t border-slate-800 pt-3 space-y-2">
+                            <label class="text-xs text-slate-300 font-semibold">Custom Cloak URL</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="customCloakUrlInput" placeholder="https://example.com" class="flex-1 h-10 px-3 rounded-xl glass text-white text-xs focus:outline-none focus:border-emerald-500">
+                                <button onclick="applyCustomCloak()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panic Key Tab -->
+                <div id="stTabPanic" class="space-y-6 hidden">
+                    <!-- Panic Key Capture Section -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4 max-w-md">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Panic Key</h3>
+                            <p class="text-xs text-slate-400">Press capture, press your desired key, then click save to persist across sessions.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div id="panicKeyDisplay" class="flex-1 h-10 px-3 rounded-xl glass flex items-center text-xs font-bold text-emerald-400">`</div>
+                            <button id="capturePanicBtn" onclick="startCapturingKey()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs transition border border-slate-700">capture</button>
+                            <button id="savePanicKeyBtn" onclick="saveCapturedPanicKey()" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition">save</button>
+                            <button onclick="clearPanicKey()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition border border-slate-700">clear</button>
+                        </div>
+                        <p id="panicKeyStatus" class="text-[11px] text-emerald-400 hidden"></p>
+                    </div>
+
+                    <!-- Panic URL Section -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4 max-w-md">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Panic URL</h3>
+                            <p class="text-xs text-slate-400">Where the panic key sends you</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="panicUrlInput" value="https://www.google.com" class="flex-1 h-10 px-3 rounded-xl glass text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <button onclick="savePanicUrl()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition">save</button>
+                            <button onclick="window.open(document.getElementById('panicUrlInput').value, '_blank')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition border border-slate-700">go now</button>
+                        </div>
+                    </div>
+
+                    <!-- Close Protection Section -->
+                    <div class="glass-panel p-6 rounded-2xl flex items-center justify-between max-w-md">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Close Protection</h3>
+                            <p class="text-xs text-slate-400">warn before reloading or closing the tab</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="closeProtectionToggle" onchange="toggleCloseProtection()" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APP / GAME IFRAME CONTAINER -->
+        <div id="viewAppFrame" class="absolute inset-x-0 bottom-0 top-[84px] hidden flex flex-col z-20 bg-slate-950">
+            <div class="h-12 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTabToHome()" class="px-3 py-1.5 rounded-lg glass hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <span id="appFrameTitle" class="text-sm font-bold text-white truncate max-w-md">Loading...</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleFullscreen()" class="px-3 py-1.5 rounded-lg glass hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-expand"></i> Full Screen
+                    </button>
+                    <button id="externalFallbackBtn" onclick="openExternalUrl()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-lg text-xs transition">
+                        Open in New Tab
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 w-full h-full bg-slate-950 relative overflow-hidden" id="iframeViewportContainer">
+                <iframe id="activeAppIframe" src="" class="w-full h-full border-none"></iframe>
+            </div>
+        </div>
+
+        <!-- FLOATING EXIT FULL SCREEN PILL -->
+        <button id="exitFullscreenPill" onclick="toggleFullscreen()" class="fixed bottom-4 right-4 z-[99] px-4 py-2 bg-slate-900/90 backdrop-blur border border-slate-700 text-white rounded-full text-xs font-bold shadow-2xl hover:bg-slate-800 transition hidden items-center gap-2">
+            <i class="fa-solid fa-compress"></i> Exit Full Screen
+        </button>
+
+    </main>
+
+    <!-- Hidden Input for Custom Screenshot Uploader -->
+    <input type="file" id="customImageInput" accept="image/*" class="hidden">
+
+    <script>
+        // Fast Loading Simulator
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.getElementById('loadingBar');
+            bar.style.width = '100%';
+            setTimeout(() => {
+                const loader = document.getElementById('loadingScreen');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 400);
+            }, 300);
+        });
+
+        let tabs = JSON.parse(localStorage.getItem('synclos_tabs')) || [{ id: 1, title: 'Synclos Home', type: 'home', url: '' }];
+        let activeTabId = parseInt(localStorage.getItem('synclos_active_tab')) || tabs[0].id;
+        let isCollapsed = true; 
+        let panicUrl = localStorage.getItem('synclos_panic') || 'https://www.google.com';
+        let panicKey = localStorage.getItem('synclos_panic_key') || '`';
+        let pendingPanicKey = panicKey;
+        let closeProtectionEnabled = localStorage.getItem('synclos_close_protection') !== 'false';
+        let currentBg = localStorage.getItem('synclos_bg') || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80';
+
+        document.getElementById('bodyBg').style.backgroundImage = `url('${currentBg}')`;
+        document.getElementById('panicUrlInput').value = panicUrl;
+        document.getElementById('panicKeyDisplay').innerText = panicKey;
+        document.getElementById('closeProtectionToggle').checked = closeProtectionEnabled;
+
+        window.addEventListener('beforeunload', (e) => {
+            if (closeProtectionEnabled) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        function toggleCloseProtection() {
+            closeProtectionEnabled = document.getElementById('closeProtectionToggle').checked;
+            localStorage.setItem('synclos_close_protection', closeProtectionEnabled);
+        }
+
+        let isCapturingKey = false;
+        function startCapturingKey() {
+            isCapturingKey = true;
+            const display = document.getElementById('panicKeyDisplay');
+            const btn = document.getElementById('capturePanicBtn');
+            const status = document.getElementById('panicKeyStatus');
+            status.classList.add('hidden');
+            display.innerText = 'press any key...';
+            btn.classList.add('bg-emerald-500', 'text-slate-950');
+            btn.classList.remove('bg-slate-800', 'text-white');
+        }
+
+        function saveCapturedPanicKey() {
+            if (isCapturingKey) {
+                isCapturingKey = false;
+                const btn = document.getElementById('capturePanicBtn');
+                btn.classList.remove('bg-emerald-500', 'text-slate-950');
+                btn.classList.add('bg-slate-800', 'text-white');
+            }
+            panicKey = pendingPanicKey;
+            localStorage.setItem('synclos_panic_key', panicKey);
+            document.getElementById('panicKeyDisplay').innerText = panicKey;
+            const status = document.getElementById('panicKeyStatus');
+            status.innerText = `Saved "${panicKey}" — active now and on every future login.`;
+            status.classList.remove('hidden');
+        }
+
+        function clearPanicKey() {
+            isCapturingKey = false;
+            panicKey = '`';
+            pendingPanicKey = '`';
+            localStorage.setItem('synclos_panic_key', panicKey);
+            document.getElementById('panicKeyDisplay').innerText = panicKey;
+            const btn = document.getElementById('capturePanicBtn');
+            btn.classList.remove('bg-emerald-500', 'text-slate-950');
+            btn.classList.add('bg-slate-800', 'text-white');
+            const status = document.getElementById('panicKeyStatus');
+            status.innerText = 'Reset to default key (`) and saved.';
+            status.classList.remove('hidden');
+        }
+
+        const appsList = [
+            { name: 'Roblox', icon: 'fa-solid fa-cube text-emerald-400', url: 'https://frogiesarcade.net' },
+            { name: 'TikTok', icon: 'fa-brands fa-tiktok text-white', url: 'https://www.tiktok.com' },
+            { name: 'YouTube', icon: 'fa-brands fa-youtube text-red-500', url: 'https://www.youtube.com' },
+            { name: 'Reddit', icon: 'fa-brands fa-reddit text-orange-500', url: 'https://www.reddit.com' },
+            { name: 'Discord', icon: 'fa-brands fa-discord text-indigo-400', url: 'https://discord.com' },
+            { name: 'Google', icon: 'fa-brands fa-google text-blue-400', url: 'https://www.google.com' },
+            { name: 'GitHub', icon: 'fa-brands fa-github text-white', url: 'https://github.com' }
+        ];
+
+        // Default Games + User Custom Games Storage
+        let defaultGames = [
+            { name: 'Undertale - Section 1', icon: 'fa-solid fa-gamepad text-purple-400', url: 'html-main/1-fix2.html', img: '' },
+            { name: 'Undertale - Section 10', icon: 'fa-solid fa-gamepad text-purple-400', url: 'html-main/10-fix2.html', img: '' },
+            { name: 'Retro Bowl', icon: 'fa-solid fa-football text-amber-500', url: 'https://retrobowl.me', img: '' },
+            { name: 'Slope', icon: 'fa-solid fa-mountain text-emerald-400', url: 'https://www.mathsisfun.com/games/slope.html', img: '' }
+        ];
+
+        let customGames = JSON.parse(localStorage.getItem('synclos_custom_games')) || [];
+
+        const aiList = [
+            { name: 'ChatGPT', icon: 'fa-solid fa-robot text-emerald-400', url: 'https://chatgpt.com' },
+            { name: 'Claude', icon: 'fa-solid fa-brain text-amber-400', url: 'https://claude.ai' }
+        ];
+
+        const themesList = [
+            { name: 'Minecraft Sunrise', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80' },
+            { name: 'Snowy Peaks', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80' }
+        ];
+
+        function saveState() {
+            localStorage.setItem('synclos_tabs', JSON.stringify(tabs));
+            localStorage.setItem('synclos_active_tab', activeTabId);
+        }
+
+        function toggleSidebar() {
+            isCollapsed = !isCollapsed;
+            const sidebar = document.getElementById('sidebar');
+            const texts = document.querySelectorAll('.sidebar-text');
+            const collapseIcon = document.getElementById('collapseIcon');
+            const toggleBtn = document.getElementById('toggleSidebarBtn');
+            
+            if (isCollapsed) {
+                sidebar.classList.replace('w-64', 'w-16');
+                texts.forEach(el => el.classList.add('hidden'));
+                collapseIcon.className = 'fa-solid fa-chevron-right text-slate-400 w-4 text-center shrink-0';
+                toggleBtn.setAttribute('title', 'Expand Sidebar');
+            } else {
+                sidebar.classList.replace('w-16', 'w-64');
+                texts.forEach(el => el.classList.remove('hidden'));
+                collapseIcon.className = 'fa-solid fa-chevron-left text-slate-400 w-4 text-center shrink-0';
+                toggleBtn.setAttribute('title', 'Collapse Sidebar');
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(err);
+                });
+                document.getElementById('exitFullscreenPill').classList.remove('hidden');
+                document.getElementById('exitFullscreenPill').classList.add('flex');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                document.getElementById('exitFullscreenPill').classList.add('hidden');
+                document.getElementById('exitFullscreenPill').classList.remove('flex');
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('topBrowserTabs');
+            if (!container) return;
+            container.innerHTML = tabs.map(tab => `
+                <div onclick="switchTab(${tab.id})" class="flex items-center gap-2 ${tab.id === activeTabId ? 'bg-slate-900 border-t-2 border-emerald-500 text-white' : 'bg-slate-950/40 text-slate-400 hover:text-white'} px-3 py-1 rounded-t-lg text-xs font-semibold shadow-sm cursor-pointer transition">
+                    <i class="fa-solid ${tab.type === 'home' ? 'fa-house text-emerald-400' : 'fa-globe text-blue-400'} text-[10px]"></i>
+                    <span class="truncate max-w-[120px]">${tab.title}</span>
+                    ${tabs.length > 1 ? `<button onclick="event.stopPropagation(); closeTab(${tab.id})" class="text-slate-400 hover:text-white px-1 shrink-0"><i class="fa-solid fa-xmark text-[10px]"></i></button>` : ''}
+                </div>
+            `).join('') + `
+                <button onclick="addNewTab()" class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition ml-1 shrink-0" title="New Tab">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                </button>
+            `;
+            saveState();
+        }
+
+        function renderGrids() {
+            document.getElementById('appsGrid').innerHTML = appsList.map(app => `
+                <div onclick="launchApp('${app.name}', '${app.url}')" class="glass-panel p-4 rounded-2xl hover:bg-slate-800/90 cursor-pointer flex flex-col items-center gap-3">
+                    <i class="${app.icon} text-2xl"></i>
+                    <span class="text-xs font-semibold">${app.name}</span>
+                </div>
+            `).join('');
+
+            // Combine default games & custom uploaded games
+            const allGames = [...defaultGames, ...customGames];
+            let gamesHTML = allGames.map((game, index) => {
+                let cardContent = game.img 
+                    ? `<div class="h-24 rounded-xl bg-cover bg-center mb-2" style="background-image: url('${game.img}')"></div>`
+                    : `<div class="h-24 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-2"><i class="${game.icon || 'fa-solid fa-gamepad text-purple-400'} text-2xl"></i></div>`;
+                
+                let deleteBtn = index >= defaultGames.length 
+                    ? `<button onclick="event.stopPropagation(); deleteCustomGame(${index - defaultGames.length})" class="absolute top-2 right-2 w-6 h-6 rounded-lg bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center text-xs" title="Delete Game"><i class="fa-solid fa-trash"></i></button>`
+                    : '';
+
+                return `
+                    <div onclick="launchApp('${game.name}', '${game.url}')" class="glass-panel p-3 rounded-2xl hover:bg-slate-800/90 cursor-pointer flex flex-col justify-between relative group transition">
+                        ${deleteBtn}
+                        ${cardContent}
+                        <span class="text-xs font-semibold text-center truncate">${game.name}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Add Card trigger
+            gamesHTML += `
+                <div onclick="switchView('addGame')" class="glass-panel p-3 rounded-2xl cursor-pointer border-2 border-dashed border-slate-600 hover:border-emerald-500 transition flex flex-col items-center justify-center text-center h-full min-h-[140px]">
+                    <i class="fa-solid fa-plus text-emerald-400 text-xl mb-1"></i>
+                    <span class="text-xs font-bold text-white">Add Game</span>
+                    <span class="text-[10px] text-slate-400">Upload your own</span>
+                </div>
+            `;
+            document.getElementById('gamesGrid').innerHTML = gamesHTML;
+
+            document.getElementById('aiGrid').innerHTML = aiList.map(ai => `
+                <div onclick="launchApp('${ai.name}', '${ai.url}')" class="glass-panel p-4 rounded-2xl hover:bg-slate-800/90 cursor-pointer flex flex-col items-center gap-3">
+                    <i class="${ai.icon} text-2xl"></i>
+                    <span class="text-xs font-semibold">${ai.name}</span>
+                </div>
+            `).join('');
+
+            let themesHTML = themesList.map(theme => `
+                <div onclick="setTheme('${theme.url}')" class="glass-panel p-2 rounded-2xl cursor-pointer hover:border-emerald-500 transition">
+                    <div class="h-24 rounded-xl bg-cover bg-center mb-2" style="background-image: url('${theme.url}')"></div>
+                    <span class="text-xs font-semibold text-center block">${theme.name}</span>
+                </div>
+            `).join('');
+
+            themesHTML += `
+                <div onclick="triggerCustomScreenshot()" class="glass-panel p-2 rounded-2xl cursor-pointer border-2 border-dashed border-slate-600 hover:border-emerald-500 transition flex flex-col items-center justify-center text-center h-full min-h-[120px]">
+                    <i class="fa-solid fa-camera text-emerald-400 text-lg mb-1"></i>
+                    <span class="text-xs font-bold text-white">Custom</span>
+                    <span class="text-[10px] text-slate-400">Choose screenshot</span>
+                </div>
+            `;
+            document.getElementById('themesGrid').innerHTML = themesHTML;
+        }
+
+        function previewCover(url) {
+            const box = document.getElementById('coverPreviewBox');
+            if (url.trim()) {
+                box.style.backgroundImage = `url('${url.trim()}')`;
+                box.innerText = '';
+            } else {
+                box.style.backgroundImage = 'none';
+                box.innerText = 'No image preview yet';
+            }
+        }
+
+        function saveCustomGame() {
+            const nameInput = document.getElementById('newGameName').value.trim();
+            const urlInput = document.getElementById('newGameUrl').value.trim();
+            const imgInput = document.getElementById('newGameImg').value.trim();
+
+            if (!urlInput) {
+                alert('Please enter a valid game file path or URL.');
+                return;
+            }
+
+            const gameName = nameInput || urlInput.split('/').pop().replace('.html', '');
+            
+            customGames.push({
+                name: gameName,
+                icon: 'fa-solid fa-gamepad text-purple-400',
+                url: urlInput,
+                img: imgInput
+            });
+
+            localStorage.setItem('synclos_custom_games', JSON.stringify(customGames));
+
+            document.getElementById('newGameName').value = '';
+            document.getElementById('newGameUrl').value = '';
+            document.getElementById('newGameImg').value = '';
+            previewCover('');
+
+            renderGrids();
+            switchView('games');
+        }
+
+        function deleteCustomGame(index) {
+            if (confirm('Are you sure you want to remove this custom game?')) {
+                customGames.splice(index, 1);
+                localStorage.setItem('synclos_custom_games', JSON.stringify(customGames));
+                renderGrids();
+            }
+        }
+
+        function addNewTab() {
+            const newId = Date.now();
+            tabs.push({ id: newId, title: 'Synclos Home', type: 'home', url: '' });
+            switchTab(newId);
+        }
+
+        function closeTab(id) {
+            tabs = tabs.filter(t => t.id !== id);
+            if (tabs.length === 0) addNewTab();
+            else switchTab(tabs[tabs.length - 1].id);
+        }
+
+        let currentActiveUrl = '';
+
+        function switchTab(id) {
+            activeTabId = id;
+            renderTabs();
+            const tab = tabs.find(t => t.id === id);
+            if (!tab) return;
+            
+            if (tab.type === 'home') {
+                hideAllViews();
+                document.getElementById('viewHome').classList.remove('hidden');
+            } else if (tab.type === 'app') {
+                hideAllViews();
+                document.getElementById('viewAppFrame').classList.remove('hidden');
+                document.getElementById('appFrameTitle').innerText = tab.title;
+                currentActiveUrl = tab.url;
+                document.getElementById('activeAppIframe').src = tab.url;
+            }
+        }
+
+        function switchTabToHome() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) {
+                tab.type = 'home';
+                tab.title = 'Synclos Home';
+                tab.url = '';
+            }
+            switchTab(activeTabId);
+        }
+
+        function hideAllViews() {
+            document.getElementById('viewHome').classList.add('hidden');
+            document.getElementById('viewApps').classList.add('hidden');
+            document.getElementById('viewGames').classList.add('hidden');
+            document.getElementById('viewAddGame').classList.add('hidden');
+            document.getElementById('viewAi').classList.add('hidden');
+            document.getElementById('viewSettings').classList.add('hidden');
+            document.getElementById('viewAppFrame').classList.add('hidden');
+        }
+
+        function switchView(viewName) {
+            hideAllViews();
+            const viewCap = viewName.charAt(0).toUpperCase() + viewName.slice(1);
+            document.getElementById('view' + viewCap).classList.remove('hidden');
+            
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && viewName === 'home') {
+                tab.type = 'home';
+                tab.title = 'Synclos Home';
+                tab.url = '';
+            } else if (tab && viewName !== 'home' && viewName !== 'settings' && viewName !== 'addGame') {
+                tab.type = 'app';
+                tab.title = viewCap;
+                tab.url = '';
+            }
+            renderTabs();
+        }
+
+        function launchApp(name, url) {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                document.getElementById('exitFullscreenPill').classList.remove('hidden');
+                document.getElementById('exitFullscreenPill').classList.add('flex');
+            }
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) {
+                tab.type = 'app';
+                tab.title = name;
+                tab.url = url;
+                switchTab(activeTabId);
+            }
+        }
+
+        function openExternalUrl() {
+            if (currentActiveUrl) window.open(currentActiveUrl, '_blank');
+        }
+
+        function triggerCustomScreenshot() {
+            document.getElementById('customImageInput').click();
+        }
+
+        document.getElementById('customImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    setTheme(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function setTheme(url) {
+            currentBg = url;
+            localStorage.setItem('synclos_bg', url);
+            document.getElementById('bodyBg').style.backgroundImage = `url('${url}')`;
+        }
+
+        function switchSettingsTab(tabKey) {
+            document.getElementById('stTabThemes').classList.add('hidden');
+            document.getElementById('stTabCloak').classList.add('hidden');
+            document.getElementById('stTabPanic').classList.add('hidden');
+            
+            document.getElementById('stBtnThemes').className = 'px-4 py-2 rounded-xl hover:bg-slate-800/60 text-slate-300 font-semibold text-sm transition';
+            document.getElementById('stBtnCloak').className = 'px-4 py-2 rounded-xl hover:bg-slate-800/60 text-slate-300 font-semibold text-sm transition';
+            document.getElementById('stBtnPanic').className = 'px-4 py-2 rounded-xl hover:bg-slate-800/60 text-slate-300 font-semibold text-sm transition';
+
+            const cap = tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
+            document.getElementById('stTab' + cap).classList.remove('hidden');
+            document.getElementById('stBtn' + cap).className = 'px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold text-sm transition';
+        }
+
+        function setCloak(title, iconUrl) {
+            document.title = title;
+            if (iconUrl) {
+                let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+                link.type = 'image/x-icon';
+                link.rel = 'shortcut icon';
+                link.href = iconUrl;
+                document.getElementsByTagName('head')[0].appendChild(link);
+            } else {
+                document.title = "Synclos";
+            }
+        }
+
+        function applyCustomCloak() {
+            const url = document.getElementById('customCloakUrlInput').value.trim();
+            if (!url) return;
+            try {
+                const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+                const domain = parsed.hostname;
+                const title = domain.replace('www.', '').split('.')[0];
+                const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+                const favicon = `https://www.google.com/s2/favicons?domain=${parsed.origin}&sz=64`;
+                setCloak(capitalizedTitle, favicon);
+                alert(`Cloak set to ${capitalizedTitle}!`);
+            } catch (err) {
+                alert('Please enter a valid URL.');
+            }
+        }
+
+        function savePanicUrl() {
+            panicUrl = document.getElementById('panicUrlInput').value;
+            localStorage.setItem('synclos_panic', panicUrl);
+            alert('Panic URL saved!');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (isCapturingKey) {
+                e.preventDefault();
+                pendingPanicKey = e.key;
+                document.getElementById('panicKeyDisplay').innerText = pendingPanicKey;
+                const btn = document.getElementById('capturePanicBtn');
+                btn.classList.remove('bg-emerald-500', 'text-slate-950');
+                btn.classList.add('bg-slate-800', 'text-white');
+                isCapturingKey = false;
+                const status = document.getElementById('panicKeyStatus');
+                status.innerText = `Captured "${pendingPanicKey}". Click "save" to keep it.`;
+                status.classList.remove('hidden');
+                return;
+            }
+
+            if (e.key.toLowerCase() === panicKey.toLowerCase() || e.code === panicKey) {
+                window.location.replace(panicUrl);
+            }
+        });
+
+        // Search Handlers
+        function handleSearchQuery(queryVal) {
+            let query = queryVal.trim();
+            if (!query) return;
+
+            let targetUrl = '';
+            if (query.startsWith('http') || (query.includes('.') && !query.includes(' '))) {
+                targetUrl = query.startsWith('http') ? query : `https://${query}`;
+            } else {
+                targetUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+            }
+            launchApp(query, targetUrl);
+        }
+
+        document.getElementById('launcherSearchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleSearchQuery(e.target.value);
+        });
+        document.getElementById('launcherGoBtn').addEventListener('click', () => {
+            handleSearchQuery(document.getElementById('launcherSearchInput').value);
+        });
+
+        document.getElementById('browserOmniboxInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleSearchQuery(e.target.value);
+        });
+        function handleOmniboxSearch() {
+            handleSearchQuery(document.getElementById('browserOmniboxInput').value);
+        }
+
+        renderTabs();
+        renderGrids();
+        
+        const activeTabObj = tabs.find(t => t.id === activeTabId) || tabs[0];
+        switchTab(activeTabObj.id);
+
+        document.getElementById('addNewTabBtn').addEventListener('click', addNewTab);
+    </script>
+</body>
+</html>
